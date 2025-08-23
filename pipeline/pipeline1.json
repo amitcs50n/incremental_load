@@ -15,7 +15,10 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/Users/rinku@ispjooutlook.onmicrosoft.com/notebook1"
+					"notebookPath": "/Users/rinku@ispjooutlook.onmicrosoft.com/notebook1",
+					"baseParameters": {
+						"storage_account": "@pipeline().parameters.storageAccount"
+					}
 				},
 				"linkedServiceName": {
 					"referenceName": "AzureDatabricks1",
@@ -23,6 +26,32 @@
 				}
 			}
 		],
+		"parameters": {
+			"storageAccount": {
+				"type": "string",
+				"defaultValue": "datalake244334"
+			},
+			"tableName": {
+				"type": "string",
+				"defaultValue": "customer"
+			},
+			"pkCol": {
+				"type": "string",
+				"defaultValue": "id"
+			},
+			"wmCol": {
+				"type": "string",
+				"defaultValue": "updated_at"
+			}
+		},
+		"variables": {
+			"lastWatermark": {
+				"type": "String"
+			},
+			"newWatermark": {
+				"type": "String"
+			}
+		},
 		"annotations": []
 	}
 }
