@@ -85,12 +85,57 @@
 						"typeProperties": {
 							"notebookPath": "/Users/rinku@ispjooutlook.onmicrosoft.com/notebook1",
 							"baseParameters": {
-								"storage_account": "@pipeline().parameters.storageAccount"
+								"storage_account": "@pipeline().parameters.storageAccount",
+								"container_raw": "raw",
+								"table_name": {
+									"value": "@pipeline().parameters.tableName",
+									"type": "Expression"
+								},
+								"pk_col": {
+									"value": "@pipeline().parameters.pkCol",
+									"type": "Expression"
+								},
+								"wm_col": {
+									"value": "@pipeline().parameters.wmCol",
+									"type": "Expression"
+								},
+								"last_watermark": {
+									"value": "@variables('lastWatermark')",
+									"type": "Expression"
+								}
 							}
 						},
 						"linkedServiceName": {
 							"referenceName": "AzureDatabricks1",
 							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "SetInitialWM",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "lastWatermark12",
+							"value": "1900-01-01 00:00:00"
+						}
+					},
+					{
+						"name": "SetNewWM",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "newWatermark12",
+							"value": "@json(activity('RunNotebook').output.runOutput).new_max_watermark"
 						}
 					}
 				],
@@ -120,6 +165,12 @@
 						"type": "String"
 					},
 					"newWatermark": {
+						"type": "String"
+					},
+					"lastWatermark12": {
+						"type": "String"
+					},
+					"newWatermark12": {
 						"type": "String"
 					}
 				},
