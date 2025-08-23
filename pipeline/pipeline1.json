@@ -55,6 +55,20 @@
 					"variableName": "lastWatermark12",
 					"value": "1900-01-01 00:00:00"
 				}
+			},
+			{
+				"name": "SetNewWM",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "newWatermark12",
+					"value": "@json(activity('RunNotebook').output.runOutput).new_max_watermark"
+				}
 			}
 		],
 		"parameters": {
@@ -83,6 +97,9 @@
 				"type": "String"
 			},
 			"lastWatermark12": {
+				"type": "String"
+			},
+			"newWatermark12": {
 				"type": "String"
 			}
 		},
