@@ -18,7 +18,23 @@
 					"notebookPath": "/Users/rinku@ispjooutlook.onmicrosoft.com/notebook1",
 					"baseParameters": {
 						"storage_account": "@pipeline().parameters.storageAccount",
-						"container_raw": "raw"
+						"container_raw": "raw",
+						"table_name": {
+							"value": "@pipeline().parameters.tableName",
+							"type": "Expression"
+						},
+						"pk_col": {
+							"value": "@pipeline().parameters.pkCol",
+							"type": "Expression"
+						},
+						"wm_col": {
+							"value": "@pipeline().parameters.wmCol",
+							"type": "Expression"
+						},
+						"last_watermark": {
+							"value": "@variables('lastWatermark')",
+							"type": "Expression"
+						}
 					}
 				},
 				"linkedServiceName": {
