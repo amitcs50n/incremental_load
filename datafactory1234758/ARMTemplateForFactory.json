@@ -27,9 +27,16 @@
 			"properties": {
 				"activities": [
 					{
-						"name": "Notebook1",
+						"name": "RunNotebook",
 						"type": "DatabricksNotebook",
-						"dependsOn": [],
+						"dependsOn": [
+							{
+								"activity": "SetInitialWM",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
 						"policy": {
 							"timeout": "0.12:00:00",
 							"retry": 0,
@@ -41,7 +48,10 @@
 						"typeProperties": {
 							"notebookPath": "/Users/rinku@ispjooutlook.onmicrosoft.com/notebook1",
 							"baseParameters": {
-								"storage_account": "@pipeline().parameters.storageAccount",
+								"storage_account": {
+									"value": "@pipeline().parameters.storageAccount",
+									"type": "Expression"
+								},
 								"container_raw": "raw",
 								"table_name": {
 									"value": "@pipeline().parameters.tableName",
@@ -83,7 +93,14 @@
 					{
 						"name": "SetNewWM",
 						"type": "SetVariable",
-						"dependsOn": [],
+						"dependsOn": [
+							{
+								"activity": "RunNotebook",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
 						"policy": {
 							"secureOutput": false,
 							"secureInput": false
@@ -91,7 +108,10 @@
 						"userProperties": [],
 						"typeProperties": {
 							"variableName": "newWatermark12",
-							"value": "@json(activity('RunNotebook').output.runOutput).new_max_watermark"
+							"value": {
+								"value": "@json(activity('RunNotebook').output.runOutput).new_max_watermark",
+								"type": "Expression"
+							}
 						}
 					}
 				],
@@ -134,6 +154,51 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/AzureDatabricks1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/initialload')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureDataLakeStorage1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "customer_2025-08-15_initial.csv",
+						"fileSystem": "incrementalload"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "id",
+						"type": "String"
+					},
+					{
+						"name": "name",
+						"type": "String"
+					},
+					{
+						"name": "date_of_birth",
+						"type": "String"
+					},
+					{
+						"name": "updated_at",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureDataLakeStorage1')]"
 			]
 		},
 		{
@@ -198,51 +263,6 @@
 				}
 			},
 			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/initialload')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "AzureDataLakeStorage1",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": "customer_2025-08-15_initial.csv",
-						"fileSystem": "incrementalload"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": [
-					{
-						"name": "id",
-						"type": "String"
-					},
-					{
-						"name": "name",
-						"type": "String"
-					},
-					{
-						"name": "date_of_birth",
-						"type": "String"
-					},
-					{
-						"name": "updated_at",
-						"type": "String"
-					}
-				]
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/AzureDataLakeStorage1')]"
-			]
 		}
 	]
 }
