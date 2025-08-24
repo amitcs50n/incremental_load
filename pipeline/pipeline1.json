@@ -3,9 +3,16 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Notebook1",
+				"name": "RunNotebook",
 				"type": "DatabricksNotebook",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "SetInitialWM",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -17,7 +24,10 @@
 				"typeProperties": {
 					"notebookPath": "/Users/rinku@ispjooutlook.onmicrosoft.com/notebook1",
 					"baseParameters": {
-						"storage_account": "@pipeline().parameters.storageAccount",
+						"storage_account": {
+							"value": "@pipeline().parameters.storageAccount",
+							"type": "Expression"
+						},
 						"container_raw": "raw",
 						"table_name": {
 							"value": "@pipeline().parameters.tableName",
@@ -59,7 +69,14 @@
 			{
 				"name": "SetNewWM",
 				"type": "SetVariable",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "RunNotebook",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"secureOutput": false,
 					"secureInput": false
@@ -67,7 +84,10 @@
 				"userProperties": [],
 				"typeProperties": {
 					"variableName": "newWatermark12",
-					"value": "@json(activity('RunNotebook').output.runOutput).new_max_watermark"
+					"value": {
+						"value": "@json(activity('Notebook1').output.runOutput).new_max_watermark",
+						"type": "Expression"
+					}
 				}
 			}
 		],
