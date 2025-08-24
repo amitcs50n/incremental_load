@@ -85,7 +85,7 @@
 				"typeProperties": {
 					"variableName": "newWatermark12",
 					"value": {
-						"value": "@json(activity('Notebook1').output.runOutput).new_max_watermark",
+						"value": "@json(activity('RunNotebook').output.runOutput).new_max_watermark",
 						"type": "Expression"
 					}
 				}
