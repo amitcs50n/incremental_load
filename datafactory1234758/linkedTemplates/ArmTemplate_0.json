@@ -347,7 +347,7 @@
 							"scripts": [
 								{
 									"type": "Query",
-									"text": "INSERT INTO INGESTION_AUDIT (EXECUTED_AT, PIPELINE_RUNID, TABLE_NAME, WATERMARK, STATUS)\nVALUES (\n  CURRENT_TIMESTAMP(),\n  '{{pipeline().RunId}}',\n  'CUSTOMER',\n  IFF('{{variables('newWatermark')}}'='', NULL, TO_TIMESTAMP_NTZ('{{variables('newWatermark')}}')),\n  IFF('{{variables('newWatermark')}}'='', 'NO_CHANGE', 'SUCCESS')\n);\n"
+									"text": "INSERT INTO INGESTION_AUDIT (EXECUTED_AT, PIPELINE_RUNID, TABLE_NAME, WATERMARK, STATUS)\nVALUES (\n  CURRENT_TIMESTAMP(),\n  '@{pipeline().RunId}',\n  'CUSTOMER',\n  IFF('@{variables(''newWatermark'')}' = '', NULL, TO_TIMESTAMP_NTZ('@{variables(''newWatermark'')}')),\n  IFF('@{variables(''newWatermark'')}' = '', 'NO_CHANGE', 'SUCCESS')\n);\n"
 								}
 							],
 							"scriptBlockExecutionTimeout": "02:00:00"
