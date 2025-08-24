@@ -22,7 +22,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/Users/rinku@ispjooutlook.onmicrosoft.com/notebook1",
+					"notebookPath": "/Users/rinku@ispjooutlook.onmicrosoft.com/nb_customer_incremental",
 					"baseParameters": {
 						"storage_account": {
 							"value": "@pipeline().parameters.storageAccount",
