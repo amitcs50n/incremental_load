@@ -68,7 +68,7 @@
 									"value": "@pipeline().parameters.storageAccount",
 									"type": "Expression"
 								},
-								"container_raw": "raw",
+								"container_raw": "incrementalload",
 								"table_name": {
 									"value": "@pipeline().parameters.tableName",
 									"type": "Expression"
