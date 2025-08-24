@@ -130,7 +130,7 @@
 						},
 						"userProperties": [],
 						"typeProperties": {
-							"variableName": "lastWatermark12",
+							"variableName": "lastWatermark",
 							"value": "1900-01-01 00:00:00"
 						}
 					},
@@ -151,7 +151,7 @@
 						},
 						"userProperties": [],
 						"typeProperties": {
-							"variableName": "newWatermark12",
+							"variableName": "newWatermark",
 							"value": {
 								"value": "@json(activity('RunNotebook').output.runOutput).new_max_watermark",
 								"type": "Expression"
