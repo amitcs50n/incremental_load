@@ -15,6 +15,22 @@
 			"type": "string",
 			"defaultValue": "https://datalake244334.dfs.core.windows.net/"
 		},
+		"Snowflake1_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "DB"
+		},
+		"Snowflake1_properties_typeProperties_role": {
+			"type": "string",
+			"defaultValue": "ACCOUNTADMIN"
+		},
+		"Snowflake1_properties_typeProperties_host": {
+			"type": "string",
+			"defaultValue": "NNAZGVP-RF26798.snowflakecomputing.com"
+		},
+		"AzureKeyVault1_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://kv-data-ingest.vault.azure.net/"
+		},
 		"containerUri": {
 			"type": "string",
 			"metadata": "URI to storage account containing linked ARM templates"
@@ -47,6 +63,18 @@
 					},
 					"AzureDataLakeStorage1_properties_typeProperties_url": {
 						"value": "[parameters('AzureDataLakeStorage1_properties_typeProperties_url')]"
+					},
+					"AzureKeyVault1_properties_typeProperties_baseUrl": {
+						"value": "[parameters('AzureKeyVault1_properties_typeProperties_baseUrl')]"
+					},
+					"Snowflake1_properties_typeProperties_database": {
+						"value": "[parameters('Snowflake1_properties_typeProperties_database')]"
+					},
+					"Snowflake1_properties_typeProperties_role": {
+						"value": "[parameters('Snowflake1_properties_typeProperties_role')]"
+					},
+					"Snowflake1_properties_typeProperties_host": {
+						"value": "[parameters('Snowflake1_properties_typeProperties_host')]"
 					}
 				}
 			},

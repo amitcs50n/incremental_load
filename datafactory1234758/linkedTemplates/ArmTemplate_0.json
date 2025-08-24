@@ -14,6 +14,22 @@
 		"AzureDataLakeStorage1_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://datalake244334.dfs.core.windows.net/"
+		},
+		"AzureKeyVault1_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://kv-data-ingest.vault.azure.net/"
+		},
+		"Snowflake1_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "DB"
+		},
+		"Snowflake1_properties_typeProperties_role": {
+			"type": "string",
+			"defaultValue": "ACCOUNTADMIN"
+		},
+		"Snowflake1_properties_typeProperties_host": {
+			"type": "string",
+			"defaultValue": "NNAZGVP-RF26798.snowflakecomputing.com"
 		}
 	},
 	"variables": {
@@ -63,6 +79,119 @@
 				}
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureDataLakeStorage1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('AzureDataLakeStorage1_properties_typeProperties_url')]",
+					"credential": {
+						"referenceName": "credential1",
+						"type": "CredentialReference"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/credentials/credential1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureKeyVault1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureKeyVault",
+				"typeProperties": {
+					"baseUrl": "[parameters('AzureKeyVault1_properties_typeProperties_baseUrl')]",
+					"credential": {
+						"referenceName": "credential1",
+						"type": "CredentialReference"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/credentials/credential1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/initialload')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureDataLakeStorage1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "customer_2025-08-15_initial.csv",
+						"fileSystem": "incrementalload"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "id",
+						"type": "String"
+					},
+					{
+						"name": "name",
+						"type": "String"
+					},
+					{
+						"name": "date_of_birth",
+						"type": "String"
+					},
+					{
+						"name": "updated_at",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureDataLakeStorage1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Snowflake1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "SnowflakeV2",
+				"typeProperties": {
+					"authenticationType": "Basic",
+					"accountIdentifier": "NNAZGVP-RF26798",
+					"user": "AMITYADAVSEPT1234",
+					"database": "[parameters('Snowflake1_properties_typeProperties_database')]",
+					"warehouse": "COMPUTE_WH",
+					"role": "[parameters('Snowflake1_properties_typeProperties_role')]",
+					"host": "[parameters('Snowflake1_properties_typeProperties_host')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "AzureKeyVault1",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "sf-password"
+					}
+				},
+				"version": "1.1"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureKeyVault1')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/pipeline1')]",
@@ -157,6 +286,105 @@
 								"type": "Expression"
 							}
 						}
+					},
+					{
+						"name": "MergeToTarget",
+						"type": "Script",
+						"dependsOn": [
+							{
+								"activity": "SetNewWM",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "Snowflake1",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "Query",
+									"text": "MERGE INTO CUSTOMER T\nUSING CUSTOMER_STG S\n  ON T.ID = S.ID\nWHEN MATCHED AND S.UPDATED_AT > T.UPDATED_AT THEN UPDATE SET\n  NAME = S.NAME,\n  DATE_OF_BIRTH = S.DATE_OF_BIRTH,\n  UPDATED_AT    = S.UPDATED_AT\nWHEN NOT MATCHED THEN\n  INSERT (ID, NAME, DATE_OF_BIRTH, UPDATED_AT)\n  VALUES (S.ID, S.NAME, S.DATE_OF_BIRTH, S.UPDATED_AT);\n"
+								}
+							],
+							"scriptBlockExecutionTimeout": "02:00:00"
+						}
+					},
+					{
+						"name": "WriteAudit",
+						"type": "Script",
+						"dependsOn": [
+							{
+								"activity": "MergeToTarget",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "Snowflake1",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "Query",
+									"text": "INSERT INTO INGESTION_AUDIT (EXECUTED_AT, PIPELINE_RUNID, TABLE_NAME, WATERMARK, STATUS)\nVALUES (\n  CURRENT_TIMESTAMP(),\n  '{{pipeline().RunId}}',\n  'CUSTOMER',\n  IFF('{{variables('newWatermark')}}'='', NULL, TO_TIMESTAMP_NTZ('{{variables('newWatermark')}}')),\n  IFF('{{variables('newWatermark')}}'='', 'NO_CHANGE', 'SUCCESS')\n);\n"
+								}
+							],
+							"scriptBlockExecutionTimeout": "02:00:00"
+						}
+					},
+					{
+						"name": "TruncateStg",
+						"type": "Script",
+						"dependsOn": [
+							{
+								"activity": "WriteAudit",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "Snowflake1",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "Query",
+									"text": "TRUNCATE TABLE CUSTOMER_STG;\n"
+								}
+							],
+							"scriptBlockExecutionTimeout": "02:00:00"
+						}
 					}
 				],
 				"policy": {
@@ -197,71 +425,8 @@
 				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/AzureDatabricks1')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/AzureDataLakeStorage1')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzureBlobFS",
-				"typeProperties": {
-					"url": "[parameters('AzureDataLakeStorage1_properties_typeProperties_url')]",
-					"credential": {
-						"referenceName": "credential1",
-						"type": "CredentialReference"
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/credentials/credential1')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/initialload')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "AzureDataLakeStorage1",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": "customer_2025-08-15_initial.csv",
-						"fileSystem": "incrementalload"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": [
-					{
-						"name": "id",
-						"type": "String"
-					},
-					{
-						"name": "name",
-						"type": "String"
-					},
-					{
-						"name": "date_of_birth",
-						"type": "String"
-					},
-					{
-						"name": "updated_at",
-						"type": "String"
-					}
-				]
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/AzureDataLakeStorage1')]"
+				"[concat(variables('factoryId'), '/linkedServices/AzureDatabricks1')]",
+				"[concat(variables('factoryId'), '/linkedServices/Snowflake1')]"
 			]
 		}
 	]
