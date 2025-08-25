@@ -383,7 +383,7 @@
 							"scripts": [
 								{
 									"type": "Query",
-									"text": "TRUNCATE TABLE CUSTOMER_STG;\n"
+									"text": "TRUNCATE TABLE DB.PUBLIC.CUSTOMER_STG;\n"
 								}
 							],
 							"scriptBlockExecutionTimeout": "02:00:00"
