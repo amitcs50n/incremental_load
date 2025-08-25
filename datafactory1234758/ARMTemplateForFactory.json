@@ -15,6 +15,10 @@
 			"type": "string",
 			"defaultValue": "https://datalake244334.dfs.core.windows.net/"
 		},
+		"AzureKeyVault1_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://kv-data-ingest.vault.azure.net/"
+		},
 		"Snowflake1_properties_typeProperties_database": {
 			"type": "string",
 			"defaultValue": "DB"
@@ -26,10 +30,6 @@
 		"Snowflake1_properties_typeProperties_host": {
 			"type": "string",
 			"defaultValue": "NNAZGVP-RF26798.snowflakecomputing.com"
-		},
-		"AzureKeyVault1_properties_typeProperties_baseUrl": {
-			"type": "string",
-			"defaultValue": "https://kv-data-ingest.vault.azure.net/"
 		}
 	},
 	"variables": {
@@ -190,7 +190,10 @@
 							"scripts": [
 								{
 									"type": "Query",
-									"text": "INSERT INTO INGESTION_AUDIT (EXECUTED_AT, PIPELINE_RUNID, TABLE_NAME, WATERMARK, STATUS)\nVALUES (\n  CURRENT_TIMESTAMP(),\n  '@{pipeline().RunId}',\n  'CUSTOMER',\n  IFF('@{variables(''newWatermark'')}' = '', NULL, TO_TIMESTAMP_NTZ('@{variables(''newWatermark'')}')),\n  IFF('@{variables(''newWatermark'')}' = '', 'NO_CHANGE', 'SUCCESS')\n);\n"
+									"text": {
+										"value": "INSERT INTO INGESTION_AUDIT (EXECUTED_AT, PIPELINE_RUNID, TABLE_NAME, WATERMARK, STATUS)\nSELECT\n  CURRENT_TIMESTAMP(),\n  '@{pipeline().RunId}',\n  'CUSTOMER',\n  TRY_TO_TIMESTAMP_NTZ(NULLIF('@{variables('newWatermark')}', '')),\n  CASE WHEN NULLIF('@{variables('newWatermark')}', '') IS NULL THEN 'NO_CHANGE' ELSE 'SUCCESS' END;\n",
+										"type": "Expression"
+									}
 								}
 							],
 							"scriptBlockExecutionTimeout": "02:00:00"
@@ -359,26 +362,23 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/integrationRuntime1')]",
-			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
+			"name": "[concat(parameters('factoryName'), '/AzureKeyVault1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
 			"properties": {
-				"type": "SelfHosted",
-				"typeProperties": {}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/credential1')]",
-			"type": "Microsoft.DataFactory/factories/credentials",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"type": "ManagedIdentity",
+				"annotations": [],
+				"type": "AzureKeyVault",
 				"typeProperties": {
-					"resourceId": "/subscriptions/4de5e007-e4c4-4e2b-bb58-efa8aa3a8785/resourcegroups/new_resource1233454/providers/Microsoft.ManagedIdentity/userAssignedIdentities/AmitIdentity"
+					"baseUrl": "[parameters('AzureKeyVault1_properties_typeProperties_baseUrl')]",
+					"credential": {
+						"referenceName": "credential1",
+						"type": "CredentialReference"
+					}
 				}
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/credentials/credential1')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/Snowflake1')]",
@@ -411,23 +411,26 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/AzureKeyVault1')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"name": "[concat(parameters('factoryName'), '/integrationRuntime1')]",
+			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
 			"apiVersion": "2018-06-01",
 			"properties": {
-				"annotations": [],
-				"type": "AzureKeyVault",
+				"type": "SelfHosted",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/credential1')]",
+			"type": "Microsoft.DataFactory/factories/credentials",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "ManagedIdentity",
 				"typeProperties": {
-					"baseUrl": "[parameters('AzureKeyVault1_properties_typeProperties_baseUrl')]",
-					"credential": {
-						"referenceName": "credential1",
-						"type": "CredentialReference"
-					}
+					"resourceId": "/subscriptions/4de5e007-e4c4-4e2b-bb58-efa8aa3a8785/resourcegroups/new_resource1233454/providers/Microsoft.ManagedIdentity/userAssignedIdentities/AmitIdentity"
 				}
 			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/credentials/credential1')]"
-			]
+			"dependsOn": []
 		}
 	]
 }

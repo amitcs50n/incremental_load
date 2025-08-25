@@ -347,7 +347,10 @@
 							"scripts": [
 								{
 									"type": "Query",
-									"text": "INSERT INTO INGESTION_AUDIT (EXECUTED_AT, PIPELINE_RUNID, TABLE_NAME, WATERMARK, STATUS)\nVALUES (\n  CURRENT_TIMESTAMP(),\n  '@{pipeline().RunId}',\n  'CUSTOMER',\n  IFF('@{variables(''newWatermark'')}' = '', NULL, TO_TIMESTAMP_NTZ('@{variables(''newWatermark'')}')),\n  IFF('@{variables(''newWatermark'')}' = '', 'NO_CHANGE', 'SUCCESS')\n);\n"
+									"text": {
+										"value": "INSERT INTO INGESTION_AUDIT (EXECUTED_AT, PIPELINE_RUNID, TABLE_NAME, WATERMARK, STATUS)\nSELECT\n  CURRENT_TIMESTAMP(),\n  '@{pipeline().RunId}',\n  'CUSTOMER',\n  TRY_TO_TIMESTAMP_NTZ(NULLIF('@{variables('newWatermark')}', '')),\n  CASE WHEN NULLIF('@{variables('newWatermark')}', '') IS NULL THEN 'NO_CHANGE' ELSE 'SUCCESS' END;\n",
+										"type": "Expression"
+									}
 								}
 							],
 							"scriptBlockExecutionTimeout": "02:00:00"

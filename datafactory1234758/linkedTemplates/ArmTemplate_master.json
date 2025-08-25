@@ -15,6 +15,10 @@
 			"type": "string",
 			"defaultValue": "https://datalake244334.dfs.core.windows.net/"
 		},
+		"AzureKeyVault1_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://kv-data-ingest.vault.azure.net/"
+		},
 		"Snowflake1_properties_typeProperties_database": {
 			"type": "string",
 			"defaultValue": "DB"
@@ -26,10 +30,6 @@
 		"Snowflake1_properties_typeProperties_host": {
 			"type": "string",
 			"defaultValue": "NNAZGVP-RF26798.snowflakecomputing.com"
-		},
-		"AzureKeyVault1_properties_typeProperties_baseUrl": {
-			"type": "string",
-			"defaultValue": "https://kv-data-ingest.vault.azure.net/"
 		},
 		"containerUri": {
 			"type": "string",
