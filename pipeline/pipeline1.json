@@ -196,7 +196,7 @@
 		"parameters": {
 			"storageAccount": {
 				"type": "string",
-				"defaultValue": "datalake244334"
+				"defaultValue": "storageaccount1234321"
 			},
 			"tableName": {
 				"type": "string",
