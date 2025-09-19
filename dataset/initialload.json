@@ -10,7 +10,7 @@
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"fileName": "customer_2025-08-15_initial.csv",
+				"fileName": "customer",
 				"fileSystem": "incrementalload"
 			},
 			"columnDelimiter": ",",
