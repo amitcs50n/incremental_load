@@ -1,0 +1,133 @@
+storage_account = "storageaccount1234321"   # your storage account name
+container = "incrementalload"               # your container name
+access_key = ""       # paste key1 or key2
+
+
+spark.conf.set(
+    f"fs.azure.account.key.{storage_account}.dfs.core.windows.net",
+    access_key
+)
+df = spark.read.csv(
+    f"abfss://{container}@{storage_account}.dfs.core.windows.net/customer",
+    header=True,
+    inferSchema=True
+)
+
+
+display(df)
+
+
+
+
+
+  # ==========================
+# ADF → NOTEBOOK PARAMETERS
+# (keys MUST match your ADF base parameters)
+# ==========================
+dbutils.widgets.text("storage_account", "storageaccount1234321")   # e.g. datalake244334
+dbutils.widgets.text("container_raw", "incrementalload")    # e.g. incrementalload
+dbutils.widgets.text("table_name", "customer")              # subfolder name under the container
+dbutils.widgets.text("pk_col", "id")                        # primary key column
+dbutils.widgets.text("wm_col", "updated_at")                # watermark column
+dbutils.widgets.text("last_watermark", "1900-01-01 00:00:00")
+
+storage      = dbutils.widgets.get("storage_account")
+container    = dbutils.widgets.get("container_raw")
+table_name   = dbutils.widgets.get("table_name")
+pk_col       = dbutils.widgets.get("pk_col")
+wm_col       = dbutils.widgets.get("wm_col")
+last_wm      = dbutils.widgets.get("last_watermark")
+
+# ADLS path (reads ALL files under the folder)
+raw_path = f"abfss://{container}@{storage}.dfs.core.windows.net/{table_name}/"
+
+# ==========================
+# SNOWFLAKE CONNECTION (simple)
+# Put your password inline OR read it from a secret scope if you made one.
+# ==========================
+SF_ACCOUNT   = "NNAZGVP-RF26798"    # account locator (no https://)
+SF_USER      = "AMITYADAVSEPT1234"
+SF_PASSWORD  = "Amityadav78789898@"    # <-- simple for now
+# If you created an AKV/workspace scope, uncomment the next line instead:
+# SF_PASSWORD  = dbutils.secrets.get("kv-secrets", "sf-password")  # or "ws-secrets"
+
+SF_ROLE      = "ACCOUNTADMIN"
+SF_WAREHOUSE = "COMPUTE_WH"
+SF_DATABASE  = "DB"
+SF_SCHEMA    = "PUBLIC"
+
+sfOptions = {
+  "sfUrl":       f"{SF_ACCOUNT}.snowflakecomputing.com",
+  "sfUser":      SF_USER,
+  "sfPassword":  SF_PASSWORD,
+  "sfWarehouse": SF_WAREHOUSE,
+  "sfDatabase":  SF_DATABASE,
+  "sfSchema":    SF_SCHEMA,
+  "sfRole":      SF_ROLE
+}
+
+# ==========================
+# 1) READ FILES
+# ==========================
+from pyspark.sql.functions import col, to_timestamp, to_date
+
+df = (spark.read
+      .option("header", True)
+      .option("inferSchema", True)
+      .csv(raw_path))
+
+if not df.head(1):
+    import json
+    dbutils.notebook.exit(json.dumps({"new_max_watermark": ""}))
+
+# Expecting file columns: id,name,date_of_birth,updated_at
+# Cast to safe types
+df = (df
+      .withColumn("id", col("id").cast("int"))
+      .withColumn("name", col("name").cast("string"))
+      .withColumn("date_of_birth", to_date(col("date_of_birth")))
+      .withColumn("updated_at", to_timestamp(col("updated_at")))
+     )
+
+# ==========================
+# 2) FILTER BY WATERMARK....
+# ==========================
+from pyspark.sql.functions import lit
+df_inc = df.filter(col(wm_col) > to_timestamp(lit(last_wm)))
+
+if not df_inc.head(1):
+    import json
+    dbutils.notebook.exit(json.dumps({"new_max_watermark": ""}))
+
+# ==========================
+# 3) DEDUPE BY PK (keep latest updated_at)
+# ==========================
+from pyspark.sql.window import Window
+from pyspark.sql.functions import row_number
+
+w = Window.partitionBy(col(pk_col)).orderBy(col(wm_col).desc_nulls_last())
+df_changed = (df_inc
+              .withColumn("_rn", row_number().over(w))
+              .filter(col("_rn") == 1)
+              .drop("_rn"))
+
+# ==========================
+# 4) WRITE TO SNOWFLAKE STAGING (CUSTOMER_STG)
+# ==========================
+stg_table = f"{SF_DATABASE}.{SF_SCHEMA}.CUSTOMER_STG"
+(df_changed.select("id", "name", "date_of_birth", "updated_at")
+  .write
+  .format("snowflake")
+  .options(**sfOptions)
+  .option("dbtable", stg_table)
+  .mode("append")
+  .save())
+
+# ==========================
+# 5) RETURN NEW MAX WATERMARK TO ADF
+# ==========================
+from pyspark.sql.functions import max as smax
+new_max_wm = df_changed.select(smax(col(wm_col)).alias("mx")).first()["mx"]
+
+import json
+dbutils.notebook.exit(json.dumps({"new_max_watermark": str(new_max_wm) if new_max_wm else ""}))
